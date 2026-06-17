@@ -248,26 +248,20 @@
 
         dictamenBox.style.display = 'block';
         
-        // Sincronización forzada de la casilla interna en mg
         const loteB_mg = loteB_g * 1000;
         document.getElementById('lote-b-mg-espejo').value = loteB_mg;
 
-        // 1. Ecuación MACO Dosis Clínica (mg)
+        // Ecuaciones matemáticas en miligramos puros
         const macoDosis_mg = (dosisMinA * loteB_mg) / (1000 * dosisMaxB);
+        const macoPpm_mg = loteB_mg * 0.00001; // 10 PPM de la masa del lote en mg
 
-        // 2. CORRECCIÓN OPERATIVA: 10 PPM de loteB_mg -> loteB_mg * (10 / 1,000,000) = loteB_mg * 0.00001 en gramos, pero en mg es * 0.01
-        const macoPpm_mg = loteB_mg * 0.01; 
-
-        // Selección del Peor Caso
         const macoSeleccionado_mg = Math.min(macoDosis_mg, macoPpm_mg);
-        
-        // LSD en mg/cm²
         const lsd_mg_cm2 = macoSeleccionado_mg / superficie;
 
-        // Renderizado HMI mandando los miligramos calculados
+        // Renderizado visual en las pantallas LCD
         lblDosis.innerText = formatearMasaDesdeMg(macoDosis_mg);
         lblPpm.innerText = formatearMasaDesdeMg(macoPpm_mg);
-        lblLsd.innerText = lsd_mg_cm2.toFixed(3) + ' mg/cm²';
+        lblLsd.innerText = lsd_mg_cm2.toFixed(5) + ' mg/cm²';
 
         let criterioGobernante = (macoDosis_mg < macoPpm_mg) ? "Dosis Clínica (0.1%)" : "Pureza Química (10 PPM)";
 
@@ -280,7 +274,7 @@
             
             dictamenHeader.innerText = "⚙ REPORTE DE INGENIERÍA DE VALIDACIONES";
             dictamenHeader.style.color = "var(--neon-blue)";
-            dictamenText.innerText = `El peor caso regulatorio fue dictaminado por la ecuación de ${criterioGobernante} al arrojar el valor de masa más restrictivo. La orden de muestreo en el piso se fija oficialmente bajo un límite máximo por superficie de **${lsd_mg_cm2.toFixed(3)} mg/cm²**.`;
+            dictamenText.innerText = `El peor caso regulatorio fue dictaminado por la ecuación de ${criterioGobernante} al arrojar el valor de masa más restrictivo. La orden de muestreo en el piso se fija oficialmente bajo un límite máximo por superficie de **${lsd_mg_cm2.toFixed(5)} mg/cm²**.`;
             
         } else {
             if (isNaN(valorRealHPLC) || valorRealHPLC < 0) {
@@ -291,23 +285,23 @@
             if (valorRealHPLC <= lsd_mg_cm2) {
                 lcd.className = 'lcd-screen calculated';
                 lblLsd.className = 'lcd-value v-green';
-                lblAnalisis.innerText = `PASÓ (REAL: ${valorRealHPLC.toFixed(3)} mg/cm²)`;
+                lblAnalisis.innerText = `PASÓ (REAL: ${valorRealHPLC.toFixed(5)} mg/cm²)`;
                 lblAnalisis.style.color = "var(--neon-green)";
                 statusText.innerText = `MÉTODO DE LAVADO COMPLIANT | CRITERIO: ${criterioGobernante.toUpperCase()}`;
                 
                 dictamenHeader.innerText = "✓ DICTAMEN: LÍNEA COMPARTIDA LIBERADA";
                 dictamenHeader.style.color = "var(--neon-green)";
-                dictamenText.innerText = `El reporte analítico (${valorRealHPLC.toFixed(3)} mg/cm²) cumple holgadamente con el límite de superficie calculado de ${lsd_mg_cm2.toFixed(3)} mg/cm² gobernado por las ${criterioGobernante}. Se autoriza la liberación de la línea para el siguiente montaje comercial.`;
+                dictamenText.innerText = `El reporte analítico (${valorRealHPLC.toFixed(5)} mg/cm²) cumple con el límite de superficie calculado de ${lsd_mg_cm2.toFixed(5)} mg/cm² gobernado por las ${criterioGobernante}. Se autoriza la liberación de la línea.`;
             } else {
                 lcd.className = 'lcd-screen crit';
                 lblLsd.className = 'lcd-value v-red';
-                lblAnalisis.innerText = `RECHAZADO (REAL: ${valorRealHPLC.toFixed(3)} mg/cm²)`;
+                lblAnalisis.innerText = `RECHAZADO (REAL: ${valorRealHPLC.toFixed(5)} mg/cm²)`;
                 lblAnalisis.style.color = "var(--neon-red)";
                 statusText.innerText = "CONTAMINACIÓN CRUZADA DETECTADA OUT OF SPECIFICATION (OOS)";
                 
                 dictamenHeader.innerText = "🚨 DICTAMEN: DESVÍO CRÍTICO Y RE-LAVADO MANDATORIO";
                 dictamenHeader.style.color = "var(--neon-red)";
-                dictamenText.innerText = `Falla de limpieza. El valor real (${valorRealHPLC.toFixed(3)} mg/cm²) violó la especificación límite fijada por la regla de ${criterioGobernante}. Detener el proceso en seco, aislar el herramental y abrir investigación forense CAPA.`;
+                dictamenText.innerText = `Falla de limpieza. El valor real (${valorRealHPLC.toFixed(5)} mg/cm²) violó la especificación límite de ${lsd_mg_cm2.toFixed(5)} mg/cm² de la regla de ${criterioGobernante}. Detener el proceso y abrir CAPA.`;
             }
         }
     }
