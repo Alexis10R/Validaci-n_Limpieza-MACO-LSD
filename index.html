@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Consola QA: Validación de Limpieza (MACO / LSD)</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+    :root {
+        --bg-dark: #090d16;
+        --bg-panel: #111b2d;
+        --text-main: #f8fafc;
+        --text-muted: #64748b;
+        --neon-blue: #0ea5e9;
+        --neon-green: #10b981;
+        --neon-yellow: #f59e0b;
+        --neon-red: #ef4444;
+        --border-color: #1e293b;
+        --card-bg: #1e293b;
+    }
+
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; padding: 12px; box-sizing: border-box; overflow-x: hidden; }
+    
+    .dapp-container { max-width: 650px; margin: 0 auto; background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden; }
+    
+    .header-bar { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.5); }
+    .hub-back-btn { background: rgba(14, 165, 233, 0.1); color: var(--neon-blue); border: 1px solid var(--neon-blue); padding: 8px 14px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.85em; display: flex; align-items: center; transition: 0.2s; }
+    .hub-back-btn:hover { background: var(--neon-blue); color: #fff; box-shadow: 0 0 15px var(--neon-blue); }
+
+    .section-title { font-size: 0.85em; font-family: monospace; color: var(--neon-blue); padding: 15px 20px 0 20px; font-weight: bold; letter-spacing: 1.5px; }
+
+    .calc-zone { padding: 10px 20px 20px 20px; }
+
+    .control-panel { background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 14px; }
+    .control-row { display: flex; flex-direction: column; gap: 6px; position: relative; }
+    
+    @media (min-width: 480px) { .control-row { flex-direction: row; align-items: center; justify-content: space-between; } }
+
+    .label-group { display: flex; align-items: center; gap: 6px; }
+    label { font-size: 0.82em; color: #cbd5e1; font-weight: bold; font-family: monospace; }
+    
+    .help-icon { background: #1e293b; color: var(--neon-blue); border: 1px solid #334155; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7em; font-weight: bold; cursor: pointer; position: relative; }
+    .help-icon:hover .tooltip-text { opacity: 1; visibility: visible; }
+    .tooltip-text { visibility: hidden; width: 230px; background-color: #030712; color: #cbd5e1; text-align: left; border: 1px solid #334155; border-radius: 6px; padding: 10px; position: absolute; z-index: 10; bottom: 125%; left: 50%; transform: translateX(-50%); opacity: 0; transition: opacity 0.2s; font-family: sans-serif; font-size: 0.8em; line-height: 1.3; font-weight: normal; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+    .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #334155 transparent transparent transparent; }
+
+    input[type="number"] { background: #030712; border: 1px solid #334155; color: var(--neon-blue); padding: 8px 12px; border-radius: 6px; font-family: monospace; font-size: 1.05em; outline: none; box-sizing: border-box; }
+    @media (min-width: 480px) { input[type="number"] { width: auto; min-width: 170px; } }
+
+    .checkbox-row { display: flex; align-items: center; gap: 10px; background: rgba(14, 165, 233, 0.05); border: 1px dashed rgba(14, 165, 233, 0.3); padding: 12px; border-radius: 8px; margin-bottom: 15px; cursor: pointer; }
+    .checkbox-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--neon-blue); }
+
+    .eval-panel { display: none; background: rgba(245, 158, 11, 0.03); border: 1px solid var(--neon-yellow); }
+
+    .formula-display { background: rgba(0, 0, 0, 0.4); border: 1px dashed #334155; padding: 12px; text-align: center; font-family: 'Courier New', monospace; font-size: 0.9em; color: #cbd5e1; border-radius: 8px; margin-bottom: 15px; line-height: 1.4; }
+
+    .btn-calc { background: rgba(14, 165, 233, 0.15); border: 1px solid var(--neon-blue); color: var(--neon-blue); width: 100%; padding: 15px; font-size: 1.05em; font-weight: bold; font-family: monospace; letter-spacing: 2px; border-radius: 10px; cursor: pointer; transition: 0.3s; display: block; }
+    .btn-calc:hover { background: var(--neon-blue); color: #fff; box-shadow: 0 0 25px var(--neon-blue); }
+
+    /* PANEL LCD TRI-BLOCK */
+    .lcd-screen { background: #020617; border: 2px solid #334155; border-radius: 14px; padding: 18px; margin-top: 20px; text-align: center; transition: 0.3s; }
+    .lcd-screen.calculated { border-color: var(--neon-green); box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.15); }
+    .lcd-screen.crit { border-color: var(--neon-red); box-shadow: inset 0 0 20px rgba(239, 68, 68, 0.15); }
+    
+    .lcd-grid-top { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .lcd-grid-bottom { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 12px; }
+    
+    @media (min-width: 520px) {
+        .lcd-grid-top { grid-template-columns: 1fr 1fr 1fr; }
+    }
+
+    .lcd-block { background: rgba(30, 41, 59, 0.2); padding: 12px; border-radius: 8px; border: 1px solid #1e293b; text-align: center; }
+    .lcd-block.highlight-border { border-color: rgba(14, 165, 233, 0.4); background: rgba(14, 165, 233, 0.02); }
+    .lcd-block.full-width-mobile { grid-column: span 2; }
+    @media (min-width: 520px) { .lcd-block.full-width-mobile { grid-column: auto; } }
+
+    .lcd-label { font-family: monospace; color: var(--text-muted); font-size: 0.72em; letter-spacing: 1px; font-weight: bold; line-height: 1.2; }
+    .lcd-value { font-family: 'Courier New', monospace; font-size: 1.45em; font-weight: bold; margin-top: 6px; color: var(--neon-blue); }
+    
+    .lcd-screen.calculated .v-green { color: var(--neon-green); text-shadow: 0 0 10px rgba(16, 185, 129, 0.6); }
+    .lcd-screen.crit .v-red { color: var(--neon-red); text-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
+    .v-yellow { color: var(--neon-yellow); text-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+
+    .dictamen-box { margin-top: 14px; background: rgba(9, 13, 22, 0.8); border: 1px solid #1e293b; border-radius: 8px; padding: 14px; text-align: left; display: none; font-size: 0.85em; line-height: 1.45; }
+    .dictamen-title { font-family: monospace; font-weight: bold; margin-bottom: 6px; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+
+<div class="dapp-container">
+    <div class="header-bar">
+        <h3 style="margin:0; font-size: 0.9em; font-family: monospace; color: var(--text-main);">QA CONSOLE <span style="color:var(--text-muted);">| MATRIX DESGLOSE</span></h3>
+        <a href="https://alexis10r.github.io/hub/" class="hub-back-btn">← Hub Central</a>
+    </div>
+
+    <div class="section-title">1. PARÁMETROS CRÍTICOS DE LA MATRIZ DE LIMPIEZA</div>
+    <div class="calc-zone" style="padding-bottom: 0;">
+        <div class="control-panel">
+            <div class="control-row">
+                <div class="label-group">
+                    <label>DOSIS MÍNIMA DIARIA PRODUCTO A (mg):</label>
+                    <div class="help-icon">?<span class="tooltip-text">La dosis comercial más pequeña del fármaco que se lavó (Ayer).</span></div>
+                </div>
+                <input type="number" id="dosis-min-a" step="0.1" value="200.0">
+            </div>
+            
+            <div class="control-row" style="border-top: 1px solid var(--border-color); padding-top: 10px;">
+                <div class="label-group">
+                    <label>DOSIS MÁXIMA DIARIA PRODUCTO B (mg):</label>
+                    <div class="help-icon">?<span class="tooltip-text">La cantidad máxima de mg que un paciente consume al día del producto nuevo (Hoy).</span></div>
+                </div>
+                <input type="number" id="dosis-max-b" step="0.1" value="1.0">
+            </div>
+
+            <div class="control-row" style="border-top: 1px solid var(--border-color); padding-top: 10px;">
+                <div class="label-group">
+                    <label>TAMAÑO DE LOTE PRODUCTO B (g):</label>
+                    <div class="help-icon">?<span class="tooltip-text">Masa total del lote del medicamento siguiente expresada directamente en gramos (g). Ej: 20000 g para 20 kg.</span></div>
+                </div>
+                <input type="number" id="lote-b" step="1" value="20000">
+            </div>
+
+            <div class="control-row" style="border-top: 1px solid var(--border-color); padding-top: 10px; background: rgba(14,165,233,0.02);">
+                <div class="label-group">
+                    <label style="color: var(--text-muted);">LOTE B PROCESADO INTERNO (mg):</label>
+                    <div class="help-icon">?<span class="tooltip-text">Casilla espejo calculada automáticamente para el motor cromatográfico (g * 1000).</span></div>
+                </div>
+                <input type="number" id="lote-b-mg-espejo" value="20000000" disabled style="color: var(--text-muted); background: #020617; border-color: #1e293b;">
+            </div>
+
+            <div class="control-row" style="border-top: 1px solid var(--border-color); padding-top: 10px;">
+                <div class="label-group">
+                    <label>SUPERFICIE TOTAL DE CONTACTO (cm²):</label>
+                    <div class="help-icon">?<span class="tooltip-text">Área geométrica total en cm² de todo el herramental y tanques de la línea compartida.</span></div>
+                </div>
+                <input type="number" id="superficie-linea" value="150000">
+            </div>
+        </div>
+    </div>
+
+    <div class="calc-zone" style="padding-top: 0; padding-bottom: 0;">
+        <div class="checkbox-row" onclick="conmutarPanelEvaluacion()">
+            <input type="checkbox" id="check-evaluar-real" onclick="event.stopPropagation(); conmutarPanelEvaluacion();">
+            <label style="color: var(--neon-blue); cursor: pointer;">¿TENGO EL VALOR REAL EXTRÁIDO POR EL HPLC (mg/cm²)?</label>
+        </div>
+
+        <div class="control-panel eval-panel" id="panel-valor-real">
+            <div class="control-row">
+                <div class="label-group">
+                    <label style="color: var(--neon-yellow);">VALOR REAL REPORTADO DEL HISOPAJO (mg/cm²):</label>
+                    <div class="help-icon">?<span class="tooltip-text">Concentración química real del residuo arrojada por el análisis cromatográfico del laboratorio.</span></div>
+                </div>
+                <input type="number" id="valor-real-hplc" step="0.001" value="0.150" style="color: var(--neon-yellow); border-color: var(--neon-yellow);">
+            </div>
+        </div>
+    </div>
+
+    <div class="calc-zone" style="padding-top: 0;">
+        <div class="formula-display">
+            MACO<sub>Dosis</sub> = (DosisMinA · LoteB_mg) / (1000 · DosisMaxB) | MACO<sub>PPM</sub> = LoteB_mg · 10⁻⁵<br>
+            LSD = MACO<sub>Mínimo Seleccionado (mg)</sub> / SuperficieTotal
+        </div>
+
+        <button class="btn-calc" onclick="ejecutarCalculoLimpiezaQA()">CORRER EVALUACIÓN DE ARRASTRE</button>
+
+        <div class="lcd-screen" id="lcd-display">
+            <div class="lcd-grid-top">
+                <div class="lcd-block">
+                    <div class="lcd-label">MACO DOSIS CLÍNICA</div>
+                    <div class="lcd-value" id="hmi-maco-dosis">--</div>
+                </div>
+                <div class="lcd-block">
+                    <div class="lcd-label">MACO REGLA 10 PPM</div>
+                    <div class="lcd-value" id="hmi-maco-ppm">--</div>
+                </div>
+                <div class="lcd-block full-width-mobile highlight-border">
+                    <div class="lcd-label" style="color: var(--neon-blue);">LÍMITE FIJADO (LSD)</div>
+                    <div class="lcd-value v-yellow" id="hmi-lsd-final">--</div>
+                </div>
+            </div>
+            
+            <div class="lcd-grid-bottom">
+                <div class="lcd-block" style="background: rgba(0,0,0,0.2);">
+                    <div class="lcd-label">MÉTODO DE EVALUACIÓN ANALÍTICA</div>
+                    <div class="lcd-value" id="hmi-analisis-txt" style="font-size: 1.3em; color: var(--text-muted);">STANDBY</div>
+                </div>
+            </div>
+            
+            <div id="calc-status" style="font-family: monospace; font-weight: bold; font-size: 0.85em; color: var(--text-muted); letter-spacing: 1px;">SYSTEM STANDBY | DICTAMEN DE COMPORTAMIENTO</div>
+
+            <div class="dictamen-box" id="dictamen-panel">
+                <div class="dictamen-title" id="dictamen-header">DICTAMEN EJECUTIVO:</div>
+                <div id="dictamen-text" style="color: #cbd5e1;">--</div>
+            </div>
+        </div>
+        
+        <p style="font-size:0.75em; text-align:left; margin-top:20px; font-family:monospace; color: var(--text-muted);">*Cálculos automáticos basados en la guía de límites de arrastre del PIC/S y criterios de convalidación de la NOM-059.</p>
+    </div>
+</div>
+
+<script>
+    document.getElementById('lote-b').addEventListener('input', function() {
+        const gramos = parseFloat(this.value) || 0;
+        document.getElementById('lote-b-mg-espejo').value = gramos * 1000;
+    });
+
+    function conmutarPanelEvaluacion() {
+        const checkbox = document.getElementById('check-evaluar-real');
+        const panel = document.getElementById('panel-valor-real');
+        if (event.target.id !== 'check-evaluar-real') {
+            checkbox.checked = !checkbox.checked;
+        }
+        panel.style.display = checkbox.checked ? 'block' : 'none';
+    }
+
+    function formatearMasaDesdeMg(mg) {
+        const gramos = mg / 1000;
+        if (gramos >= 1000) {
+            return (gramos / 1000).toFixed(2) + ' kg';
+        }
+        return gramos.toFixed(1) + ' g';
+    }
+
+    function ejecutarCalculoLimpiezaQA() {
+        const dosisMinA = parseFloat(document.getElementById('dosis-min-a').value);
+        const dosisMaxB = parseFloat(document.getElementById('dosis-max-b').value);
+        const loteB_g = parseFloat(document.getElementById('lote-b').value);
+        const superficie = parseFloat(document.getElementById('superficie-linea').value);
+        
+        const evaluarReal = document.getElementById('check-evaluar-real').checked;
+        const valorRealHPLC = parseFloat(document.getElementById('valor-real-hplc').value);
+
+        const lcd = document.getElementById('lcd-display');
+        const statusText = document.getElementById('calc-status');
+        const lblDosis = document.getElementById('hmi-maco-dosis');
+        const lblPpm = document.getElementById('hmi-maco-ppm');
+        const lblLsd = document.getElementById('hmi-lsd-final');
+        const lblAnalisis = document.getElementById('hmi-analisis-txt');
+        
+        const dictamenBox = document.getElementById('dictamen-panel');
+        const dictamenHeader = document.getElementById('dictamen-header');
+        const dictamenText = document.getElementById('dictamen-text');
+
+        if (isNaN(dosisMinA) || isNaN(dosisMaxB) || isNaN(loteB_g) || isNaN(superficie) || dosisMinA <= 0 || dosisMaxB <= 0 || loteB_g <= 0 || superficie <= 0) {
+            alert("Verifique las variables numéricas de entrada.");
+            return;
+        }
+
+        dictamenBox.style.display = 'block';
+        
+        // Sincronización forzada de la casilla interna en mg
+        const loteB_mg = loteB_g * 1000;
+        document.getElementById('lote-b-mg-espejo').value = loteB_mg;
+
+        // 1. Ecuación MACO Dosis Clínica (mg)
+        const macoDosis_mg = (dosisMinA * loteB_mg) / (1000 * dosisMaxB);
+
+        // 2. CORRECCIÓN OPERATIVA: 10 PPM de loteB_mg -> loteB_mg * (10 / 1,000,000) = loteB_mg * 0.00001 en gramos, pero en mg es * 0.01
+        const macoPpm_mg = loteB_mg * 0.01; 
+
+        // Selección del Peor Caso
+        const macoSeleccionado_mg = Math.min(macoDosis_mg, macoPpm_mg);
+        
+        // LSD en mg/cm²
+        const lsd_mg_cm2 = macoSeleccionado_mg / superficie;
+
+        // Renderizado HMI mandando los miligramos calculados
+        lblDosis.innerText = formatearMasaDesdeMg(macoDosis_mg);
+        lblPpm.innerText = formatearMasaDesdeMg(macoPpm_mg);
+        lblLsd.innerText = lsd_mg_cm2.toFixed(3) + ' mg/cm²';
+
+        let criterioGobernante = (macoDosis_mg < macoPpm_mg) ? "Dosis Clínica (0.1%)" : "Pureza Química (10 PPM)";
+
+        if (!evaluarReal) {
+            lcd.className = 'lcd-screen calculated';
+            lblLsd.className = 'lcd-value v-green';
+            lblAnalisis.innerText = "ESPECIFICACIÓN FIJADA";
+            lblAnalisis.style.color = "var(--neon-blue)";
+            statusText.innerText = `MATRIZ EVALUADA | CRITERIO GOBERNANTE: ${criterioGobernante.toUpperCase()}`;
+            
+            dictamenHeader.innerText = "⚙ REPORTE DE INGENIERÍA DE VALIDACIONES";
+            dictamenHeader.style.color = "var(--neon-blue)";
+            dictamenText.innerText = `El peor caso regulatorio fue dictaminado por la ecuación de ${criterioGobernante} al arrojar el valor de masa más restrictivo. La orden de muestreo en el piso se fija oficialmente bajo un límite máximo por superficie de **${lsd_mg_cm2.toFixed(3)} mg/cm²**.`;
+            
+        } else {
+            if (isNaN(valorRealHPLC) || valorRealHPLC < 0) {
+                alert("Ingrese un valor de HPLC real válido.");
+                return;
+            }
+
+            if (valorRealHPLC <= lsd_mg_cm2) {
+                lcd.className = 'lcd-screen calculated';
+                lblLsd.className = 'lcd-value v-green';
+                lblAnalisis.innerText = `PASÓ (REAL: ${valorRealHPLC.toFixed(3)} mg/cm²)`;
+                lblAnalisis.style.color = "var(--neon-green)";
+                statusText.innerText = `MÉTODO DE LAVADO COMPLIANT | CRITERIO: ${criterioGobernante.toUpperCase()}`;
+                
+                dictamenHeader.innerText = "✓ DICTAMEN: LÍNEA COMPARTIDA LIBERADA";
+                dictamenHeader.style.color = "var(--neon-green)";
+                dictamenText.innerText = `El reporte analítico (${valorRealHPLC.toFixed(3)} mg/cm²) cumple holgadamente con el límite de superficie calculado de ${lsd_mg_cm2.toFixed(3)} mg/cm² gobernado por las ${criterioGobernante}. Se autoriza la liberación de la línea para el siguiente montaje comercial.`;
+            } else {
+                lcd.className = 'lcd-screen crit';
+                lblLsd.className = 'lcd-value v-red';
+                lblAnalisis.innerText = `RECHAZADO (REAL: ${valorRealHPLC.toFixed(3)} mg/cm²)`;
+                lblAnalisis.style.color = "var(--neon-red)";
+                statusText.innerText = "CONTAMINACIÓN CRUZADA DETECTADA OUT OF SPECIFICATION (OOS)";
+                
+                dictamenHeader.innerText = "🚨 DICTAMEN: DESVÍO CRÍTICO Y RE-LAVADO MANDATORIO";
+                dictamenHeader.style.color = "var(--neon-red)";
+                dictamenText.innerText = `Falla de limpieza. El valor real (${valorRealHPLC.toFixed(3)} mg/cm²) violó la especificación límite fijada por la regla de ${criterioGobernante}. Detener el proceso en seco, aislar el herramental y abrir investigación forense CAPA.`;
+            }
+        }
+    }
+</script>
+</body>
+</html>
